@@ -3,8 +3,6 @@ name: Node.js CI
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 jobs:
   build:
@@ -15,16 +13,40 @@ jobs:
         node-version: [18.x, 20.x]
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
 
-    - name: Install dependencies
-      run: npm install
+      - name: Install dependencies
+        run: npm install
 
-    - name: Run tests
-      run: npm test
+      - name: Run tests
+        run: npm test
+
+      # Use repo variable in a step
+      - name: Print repo variable
+        run: echo "Hello, my name is $MY_NAME"
+        env:
+          MY_NAME: ${{ vars.MY_NAME }}
+
+      # Step that sets an output value
+      - id: get-version
+        run: echo "version=$(node -p \"require('./package.json').version\")" >> $GITHUB_OUTPUT
+
+      # Step that uses the output from the previous step
+      - name: Print version from previous step
+        run: echo "The app version is ${{ steps.get-version.outputs.version }}"
+
+  conditional-job:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run only on main push
+        run: echo "This job only runs when code is pushed directly to main!"
