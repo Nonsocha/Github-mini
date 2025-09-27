@@ -159,3 +159,64 @@ Example: node.js.yml
     touch .github/workflows/node.js.yml
    ```
    
+### ENVIROMENTAL VARIBLE
+
+### 1. Create a repo variable in GitHub
+
+**1 Go to your GitHub repo.**
+
+**2** lick Settings → Secrets and variables → Actions → Variables.
+
+**3** Click New repository variable.
+
+* Name: MY_NAME
+
+* Value: Williams
+  
+  *** Use repo variable in a step ***
+
+"""
+    
+      name: Print repo variable
+     
+        run: echo "Hello, my name is $MY_NAME"
+        env:
+          MY_NAME: ${{ vars.MY_NAME }}
+   """ 
+
+#### 2. Work with secrets
+      
+  
+      - name: Print secret (masked in logs)
+        run: echo "The DB password is $DB_PASSWORD"
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+
+
+#### 3. Conditional Excution
+   
+   
+
+      jobs:
+    build:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "This runs only on pushes to the main branch"
+
+
+#### 4. Using Output and Input between steps
+
+
+     jobs:
+     example:
+    runs-on: ubuntu-latest
+    steps:
+      - id: step-one
+        run: echo "value=hello" >> $GITHUB_OUTPUT
+
+      - id: step-two
+        run: echo "The value is ${{ steps.step-one.outputs.value }}"
+
+ 

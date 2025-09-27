@@ -50,3 +50,13 @@ jobs:
 
       - name: Run only on main push
         run: echo "This job only runs when code is pushed directly to main!"
+
+  example:
+    runs-on: ubuntu-latest
+    steps:
+      - id: step-one
+        run: echo "value=hello" >> $GITHUB_OUTPUT
+
+      - id: step-two
+        run: echo "The value is ${{ steps.step-one.outputs.value }}"
+ 
