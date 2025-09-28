@@ -1,18 +1,19 @@
-name: Node.js CI/CD
+name: Node.js CI/CD Pipeline
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
   pull_request:
     branches: [ "main" ]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  build-test:
+    runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [16.x, 18.x, 20.x]
 
     steps:
       - name: Checkout repository
@@ -23,34 +24,60 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Install dependencies
-        run: npm install
+      - name: Cache Node.js modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
-      - name: Run tests
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint (Code Analysis)
+        run: npx eslint . --ext .js,.jsx,.ts,.tsx
+
+      - name: Run Tests
         run: npm test
 
-      # Example of using a repo variable
-      - name: Print repo variable
-        run: echo "Hello, my name is $MY_NAME"
-        env:
-          MY_NAME: ${{ vars.MY_NAME }}
-
-      # Save app version as output
-      - id: get-version
-        run: echo "version=$(node -p 'require(\"./package.json\").version')" >> $GITHUB_OUTPUT
-
-      - name: Print version
-        run: echo "App version is ${{ steps.get-version.outputs.version }}"
-
-  deploy:
+  codeql-analysis:
     runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'javascript' ]
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Deploy Node.js App
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  deploy:
+    if: github.ref == 'refs/heads/main'  # ✅ Conditional execution (only deploy from main branch)
+    runs-on: ubuntu-latest
+    needs: [build-test, codeql-analysis]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy Application
         run: |
-          echo "🚀 Deploying version ${{ needs.build.outputs.version }} to production"
-          # Example: rsync, scp, or Docker push command would go here
+          echo "🚀 Deploying application..."
+          # Add your deployment script here (Docker push, SSH to server, AWS/GCP/Azure, etc.)
